@@ -840,9 +840,7 @@ async fn fetch_chatgpt_models(
                 .map(ModelServiceTier::from)
                 .collect(),
             supports_images: None,
-            // ChatGPT's `/models` endpoint doesn't expose a context window;
-            // the compression layer falls back to a per-backend default.
-            context_length: None,
+            context_length: m.context_window,
             pricing: None,
         })
         .collect();
@@ -1063,6 +1061,9 @@ struct ChatGptModelEntry {
     /// know what each level actually means.
     #[serde(default)]
     supported_reasoning_levels: Vec<ChatGptReasoningLevel>,
+    /// Context window size in tokens.
+    #[serde(default)]
+    context_window: Option<u32>,
     /// Optional per-request service tiers. Current Codex catalogs use
     /// `priority` for fast mode.
     #[serde(default)]
@@ -3799,6 +3800,8 @@ mod tests {
                     "slug": "gpt-future",
                     "display_name": "GPT Future",
                     "priority": 10,
+                    "context_window": 272000,
+                    "max_context_window": 872000,
                     "supported_reasoning_levels": [],
                     "shell_type": "default_shell",
                     "visibility": "public",
@@ -3819,6 +3822,7 @@ mod tests {
         let parsed: ChatGptModelsResponse = serde_json::from_str(raw).unwrap();
         assert_eq!(parsed.models.len(), 1);
         assert_eq!(parsed.models[0].slug, "gpt-future");
+        assert_eq!(parsed.models[0].context_window, Some(272_000));
     }
 
     #[test]
